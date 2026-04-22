@@ -20,7 +20,7 @@ Detect SSH brute-force activity in Splunk and document the investigation the way
 
 ## Architecture
 
-![Architecture](images/architecture_diagram.png)
+![Architecture](./architecture_diagram.png)
 
 **Flow:** Attacker (Kali) → Target (Ubuntu SSH) → Splunk SIEM → SOC Analyst
 
