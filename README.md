@@ -4,7 +4,7 @@ A SOC detection project built in a home lab using Splunk SIEM.
 
 ---
 
-## 📋 Executive Summary
+## Executive Summary
 
 Simulated an SSH brute-force attack and detected it using Splunk SIEM.
 
@@ -64,7 +64,7 @@ index=main "Failed password"
 | sort - failed_attempts
 ```
 
-📸 ![Rule 1](rule1_failed_attempts.png)
+![Rule 1](rule1_failed_attempts.png)
 
 👉 **Insight:** More than 3 failures from one IP = brute-force.
 
@@ -81,7 +81,7 @@ index=main ("Failed password" OR "Accepted password")
 | where failed > 3 AND success > 0
 ```
 
-📸 ![Rule 2](rule2_success_after_fail.png)
+![Rule 2](rule2_success_after_fail.png)
 
 👉 **Insight:** Failures followed by a success = likely compromise.
 
@@ -95,7 +95,7 @@ index=main "root"
 | stats count by src_ip
 ```
 
-📸 ![Rule 3](rule3_root_attempts.png)
+![Rule 3](rule3_root_attempts.png)
 
 👉 **Insight:** Any attempt on `root` from an unknown IP is suspicious.
 
@@ -110,7 +110,7 @@ index=main "sshd"
 | sort - count
 ```
 
-📸 ![Rule 4](rule4_ip_activity.png)
+![Rule 4](rule4_ip_activity.png)
 
 👉 **Insight:** One IP hitting SSH repeatedly = attacker behavior.
 
