@@ -12,13 +12,13 @@ Simulated an SSH brute-force attack and detected it using Splunk SIEM.
 
 ---
 
-## 🎯 Objective
+## Objective
 
 Detect SSH brute-force activity in Splunk and document the investigation the way a real SOC analyst would.
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ![Architecture](architecture_diagram.png)
 
@@ -26,7 +26,7 @@ Detect SSH brute-force activity in Splunk and document the investigation the way
 
 ---
 
-## 🛠️ Tools & Environment
+## Tools & Environment
 
 - **SIEM:** Splunk Enterprise
 - **Target:** Ubuntu Server (SSH)
@@ -35,7 +35,7 @@ Detect SSH brute-force activity in Splunk and document the investigation the way
 
 ---
 
-## ⚔️ Attack Scenario
+## Attack Scenario
 
 - **Attacker IP:** `192.168.1.105`
 - **Target:** Ubuntu SSH server (`root` and other accounts)
@@ -44,7 +44,7 @@ Detect SSH brute-force activity in Splunk and document the investigation the way
 
 ---
 
-## 📥 Log Ingestion
+## Log Ingestion
 
 SSH authentication logs forwarded into Splunk under `index=main`.
 
@@ -54,7 +54,7 @@ SSH authentication logs forwarded into Splunk under `index=main`.
 
 ## 🔍 Detection Rules
 
-### 🚨 Rule 1 — Multiple Failed Logins
+### Rule 1 — Multiple Failed Logins
 
 ```spl
 index=main "Failed password"
@@ -70,7 +70,7 @@ index=main "Failed password"
 
 ---
 
-### ✅ Rule 2 — Success After Failures
+### Rule 2 — Success After Failures
 
 ```spl
 index=main ("Failed password" OR "Accepted password")
@@ -87,7 +87,7 @@ index=main ("Failed password" OR "Accepted password")
 
 ---
 
-### 👑 Rule 3 — Root Account Targeting
+### Rule 3 — Root Account Targeting
 
 ```spl
 index=main "root"
@@ -101,7 +101,7 @@ index=main "root"
 
 ---
 
-### 🌐 Rule 4 — Suspicious IP Activity
+### Rule 4 — Suspicious IP Activity
 
 ```spl
 index=main "sshd"
@@ -116,7 +116,7 @@ index=main "sshd"
 
 ---
 
-## 🎯 MITRE ATT&CK Mapping
+## MITRE ATT&CK Mapping
 
 | Behavior | Technique | Description |
 |---|---|---|
@@ -127,7 +127,7 @@ index=main "sshd"
 
 ---
 
-## 📌 Key Findings
+## Key Findings
 
 - **Attacker IP:** `192.168.1.105`
 - **Attack Type:** SSH Brute-Force
@@ -136,7 +136,7 @@ index=main "sshd"
 
 ---
 
-## 📝 Incident Summary
+## Incident Summary
 
 - **Incident Type:** SSH Brute-Force Attack
 - **Severity:** 🔴 High
@@ -147,7 +147,7 @@ index=main "sshd"
 
 ---
 
-## 🛡️ Recommendations
+## Recommendations
 
 - Disable direct `root` SSH login
 - Enforce SSH key-based auth + MFA
@@ -156,7 +156,7 @@ index=main "sshd"
 
 ---
 
-## 🧠 Skills Demonstrated
+## Skills Demonstrated
 
 - Splunk SIEM operations
 - SPL query writing
@@ -167,6 +167,6 @@ index=main "sshd"
 
 ---
 
-## 🏁 Conclusion
+## Conclusion
 
-This project shows how a SOC analyst detects SSH brute-force attacks using Splunk — proving hands-on skill in log analysis, detection engineering, and incident reporting. These are the core day-one skills of a Blue Team SOC analyst.
+This project shows how a SOC analyst detects SSH brute-force attacks using Splunk proving hands-on skill in log analysis, detection engineering, and incident reporting. These are the core day-one skills of a Blue Team SOC analyst.
