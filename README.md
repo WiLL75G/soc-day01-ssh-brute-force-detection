@@ -139,7 +139,7 @@ index=main "Failed password"
 
 ### 9. SOC Analyst Insight
 
-This activity highlights how attackers rely on automation to exploit weak authentication controls. Monitoring authentication logs and applying aggregation-based detection enables early identification of brute force attempts before account compromise occurs.
+> This activity highlights how attackers rely on automation to exploit weak authentication controls. Monitoring authentication logs and applying aggregation-based detection enables early identification of brute force attempts before account compromise occurs.
 
 In a real SOC environment, such activity would typically trigger alerts and may require immediate containment actions, such as blocking the source IP.
 
