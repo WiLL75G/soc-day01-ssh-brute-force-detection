@@ -14,8 +14,6 @@ To identify SSH brute force activity by analyzing authentication logs and detect
 
 ## Architecture
 
-![Architecture](./images/architecture_diagram.png)
-
 > **Flow:** Attacker (Kali Linux) → Target (Ubuntu SSH Server) → Splunk SIEM → Analyst Investigation
 
 ---
@@ -160,7 +158,7 @@ index=main "Failed password"
 ```
 .
 ├── images/
-│   ├── architecture_diagram.png
+│   ├── architecture
 │   ├── 01_setup.png
 │   ├── 02_attack.png
 │   ├── 03_ingestion.png
