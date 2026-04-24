@@ -37,7 +37,7 @@ Detect SSH brute-force activity in Splunk and document the investigation the way
 
 ## Attack Scenario
 
-- **Attacker IP:** `192.168.1.105`
+- **Attacker IP:** `192.168.64.15`
 - **Target:** Ubuntu SSH server (`root` and other accounts)
 - **Action:** Repeated failed SSH login attempts
 - **Outcome:** Fully detected in Splunk
@@ -129,7 +129,7 @@ index=main "sshd"
 
 ## Key Findings
 
-- **Attacker IP:** `192.168.1.105`
+- **Attacker IP:** `192.168.64.15`
 - **Attack Type:** SSH Brute-Force
 - **Target Account:** `root`
 - **Result:** Detected by all 4 Splunk rules
