@@ -13,7 +13,7 @@ To identify SSH brute force activity by analyzing authentication logs and detect
 ---
 
 ## Architecture
-Logs (Ubuntu / Auth.log)
+> Logs (Ubuntu / Auth.log)
         ↓
 Splunk Ingestion
         ↓
