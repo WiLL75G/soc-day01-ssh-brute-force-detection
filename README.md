@@ -158,7 +158,7 @@ index=main "Failed password"
 
 ## Analyst Insight
 
-Brute force attacks rely on automation to exploit weak authentication mechanisms. SIEM tools like Splunk enable early detection through log aggregation and pattern recognition, allowing SOC analysts to respond before compromise occurs.
+> Brute force attacks rely on automation to exploit weak authentication mechanisms. SIEM tools like Splunk enable early detection through log aggregation and pattern recognition, allowing SOC analysts to respond before compromise occurs.
 
 ---
 
