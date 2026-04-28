@@ -196,5 +196,3 @@ This investigation demonstrates the ability to:
 This investigation demonstrates how SSH brute force attacks can be effectively detected using Splunk SIEM. By analyzing authentication logs and identifying abnormal login patterns, SOC analysts can detect and respond to credential-based attacks before system compromise occurs.
 
 ```
-
----
