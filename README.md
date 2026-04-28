@@ -14,7 +14,7 @@
 
 ## Executive Summary
 
-A brute force attack targeting SSH services was detected using Splunk SIEM. The attacker attempted to gain unauthorized access by generating multiple failed login attempts from a single source IP within a short timeframe.
+> A brute force attack targeting SSH services was detected using Splunk SIEM. The attacker attempted to gain unauthorized access by generating multiple failed login attempts from a single source IP within a short timeframe.
 
 The activity was identified through log aggregation and pattern analysis of authentication logs ingested into Splunk.
 
