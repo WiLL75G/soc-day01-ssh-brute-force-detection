@@ -172,49 +172,7 @@ This investigation demonstrates the ability to:
 * Perform SOC-style investigation and reporting
 * Map attack behavior to MITRE ATT&CK framework
 
-
-
-
-
-## SPL Quick Reference — SOC Analyst Edition
-
-## Core Commands
-| Command | Purpose | Example |
-|---------|---------|---------|
-| search | Filter events | search "Failed password" |
-| stats | Aggregate data | stats count by src_ip |
-| rex | Extract fields | rex "from (?<ip>\d+\.\d+)" |
-| eval | Create fields | eval hour=strftime(_time,"%H") |
-| where | Filter results | where count >= 5 |
-| sort | Order results | sort -count |
-| timechart | Time-based chart | timechart count by status |
-| bucket | Group by time | bucket _time span=60s |
-| table | Display columns | table src_ip, count, alert |
-| dedup | Remove duplicates | dedup src_ip |
-
-## Common SOC SPL Patterns
-
-### Count failed logins by IP
-index=main "Failed password"
-| stats count by src_ip
-| sort -count
-
-### Find brute force in 60s window
-index=main "Failed password"
-| bucket _time span=60s
-| stats count by src_ip, _time
-| where count >= 5
-
-### Extract IPs with regex
-| rex "from (?<src_ip>\d+\.\d+\.\d+\.\d+)"
-
-### Time-based filtering
-| eval hour=strftime(_time, "%H")
-| where hour < 8 OR hour > 18
-
 ---
-
-
 
 
 ## Repository Structure
