@@ -1,4 +1,4 @@
-# Day 01 – SOC Tier 1 Incident Report: SSH Brute Force Detection (Splunk)
+# Real-Time Threat Detection: SSH Brute-Force Attack Investigation (Splunk)
 
 ---
 
