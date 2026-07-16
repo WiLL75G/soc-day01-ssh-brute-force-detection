@@ -1,93 +1,65 @@
-# Real-Time Threat Detection: SSH Brute-Force Attack Investigation (Splunk)
+# SSH Brute Force Detection with Splunk
 
----
+Detecting a live SSH brute force attack in Splunk by parsing authentication logs, extracting source IPs, and proving no compromise followed.
 
-## Incident Summary
+## At a Glance
 
-- **Incident Type:** SSH Brute Force Attack
-- **Severity:** High
-- **Detection Method:** Splunk SIEM Log Analysis
-- **Tools Used:** Splunk Enterprise, Ubuntu Server, Kali Linux (Hydra)
-- **Status:** Detected and Analyzed (No Confirmed Compromise)
+| Field | Detail |
+| --- | --- |
+| Attack Type | SSH brute force |
+| Detection Platform | Splunk Enterprise |
+| Log Source | /var/log/auth.log |
+| Target | Ubuntu Server, SSH enabled |
+| Attack Source | Kali Linux running Hydra |
+| Outcome | Attack detected, no successful login observed in the attack window |
 
----
+## What Happened
 
-## Executive Summary
+An automated password guessing attack was run against the SSH service on the Ubuntu server. Authentication logs were forwarded into Splunk, where the attack was identified by the pattern that defines brute force behaviour: many failed logins, one source IP, a short time window.
 
->A brute force attack targeting SSH services was detected using Splunk SIEM. The attacker attempted to gain unauthorized access by generating multiple failed login attempts from a single source IP within a short timeframe.
+The point of the lab was not to prove an attack happened. It was to prove the attack could be seen in the logs, measured, and closed out with evidence either way.
 
->The activity was identified through log aggregation and pattern analysis of authentication logs ingested into Splunk.
-
----
-
-## Affected System
-
-- **Target System:** Ubuntu Server (SSH Enabled)
-- **Attack Source:** Kali Linux (Simulated Attacker)
-- **Log Source:** `/var/log/auth.log`
-- **SIEM Platform:** Splunk Enterprise  
-
----
-
-## Investigation Methodology
-
----
-
-### 1. Environment Setup
+## Environment Setup
 
 ![Setup](./images/01_setup.png)
 
-- Configured SSH service on Ubuntu target system  
-- Created user accounts for authentication testing  
-- Installed and configured Splunk Enterprise  
-- Enabled log forwarding using Splunk Universal Forwarder  
+SSH service enabled on the Ubuntu target. Test user accounts created. Splunk Enterprise installed, with the Splunk Universal Forwarder shipping the auth log to the indexer.
 
----
-
-### 2. Attack Simulation
+## Attack Simulation
 
 ![Attack](./images/02_attack.png)
 
-- Performed SSH brute force attack using Hydra  
-- Generated multiple failed login attempts  
-- Targeted valid and invalid user accounts  
+Hydra was run from Kali against the SSH service. It generated repeated failed login attempts against both valid and invalid usernames, so the log data would contain the two cases a real analyst has to tell apart.
 
----
-
-### 3. Log Ingestion
+## Log Ingestion
 
 ![Log Ingestion](./images/03_ingestion.png)
 
-- Ingested `/var/log/auth.log` into Splunk  
-- Verified logs using:
+The auth log was ingested and verified before any detection work started. If the data is not there, the query is meaningless.
 
-```spl id="ingestioncheck"
+```spl
 index=main
-````
+```
 
-* Confirmed visibility of authentication events
+Authentication events confirmed visible in the index.
 
----
+## Detection Logic
 
-## Detection Analysis
+Brute force is a pattern, not a single event. The evidence needed is:
 
----
+Multiple failed authentication attempts.
 
-### 4. Brute Force Detection Logic
+Originating from one source IP.
 
-A brute force attack is identified when:
+Occurring inside a short time window.
 
-* Multiple failed login attempts occur
-* Attempts originate from a single IP
-* Activity occurs within a short timeframe
+A single failed password is a typo. Forty of them in a minute is an attack.
 
----
-
-### 5. Splunk Detection Query
+## Detection Query
 
 ![Detection](./images/04_detection.png)
 
-```spl id="bruteforcequery"
+```spl
 index=main "Failed password"
 | rex "from (?<src_ip>\d+\.\d+\.\d+\.\d+)"
 | stats count as failed_attempts by src_ip
@@ -95,85 +67,65 @@ index=main "Failed password"
 | sort - failed_attempts
 ```
 
-### SOC Observations:
-
-* Extracted source IP addresses from logs
-* Aggregated failed login attempts per IP
-* Identified top offending IP responsible for attack
-
----
+The rex command pulls the source IP out of the raw log line. Stats aggregates failures per IP, turning thousands of individual events into a ranked list. The where clause sets the threshold that separates noise from signal.
 
 ## Investigation Findings
 
----
-
-### 6. Event Investigation
-
 ![Investigation](./images/05_investigation.png)
 
-* Identified high volume of failed login attempts from a single IP
-* Observed rapid sequence of authentication failures
-* Checked for successful login attempts after failures
-* Confirmed attack behavior consistent with brute force activity
+The query returned one source IP responsible for a high volume of failed logins, delivered in rapid sequence.
 
----
+The next step was the one that matters. The same log source was checked for successful logins from that IP after the failures. None were found. The attack ran, and it did not land.
 
-## Indicators of Compromise (IOCs)
+That is the difference between "we saw something" and "we know what it did."
 
-* High number of failed SSH login attempts
-* Repeated authentication attempts from single source IP
-* Rapid login attempts within short time interval
-* Targeting of valid user accounts
+## Indicators Observed
 
----
+High volume of failed SSH authentication events.
+
+Repeated attempts from a single source IP.
+
+Rapid attempt rate inside a short interval.
+
+Valid user accounts targeted alongside invalid ones.
 
 ## MITRE ATT&CK Mapping
 
-| Behavior                | Technique ID | Description       |
-| ----------------------- | ------------ | ----------------- |
-| Brute Force Login       | T1110.001    | Password Guessing |
-| Remote Service Access   | T1021.004    | SSH               |
-| Valid Account Targeting | T1078        | Account Abuse     |
+| Behaviour | Technique ID | Description |
+| --- | --- | --- |
+| Brute force login | T1110.001 | Password guessing |
+| Remote service access | T1021.004 | SSH |
+| Valid account targeting | T1078 | Valid accounts |
 
----
+## Analyst Conclusion
 
-## SOC Analyst Findings
+SSH brute force activity confirmed from a single source IP.
 
-* Confirmed SSH brute force attack activity
-* Single source IP responsible for repeated login attempts
-* No successful compromise detected during attack window
-* Attack indicates reconnaissance and credential access attempt
+No successful authentication from that IP during the attack window.
 
----
+Behaviour consistent with a credential access attempt, not a completed compromise.
 
-## SOC Analyst Response
+## Recommended Response
 
-* Monitor repeated authentication failures in real-time
-* Block or blacklist offending IP address
-* Enable alerting rules in Splunk for brute force detection
-* Enforce account lockout policies
-* Review authentication logs for any future successful login attempts
+Block the offending source IP at the perimeter.
 
----
+Build a scheduled Splunk alert on the detection query above so this fires without an analyst watching.
 
-## Analyst Insight
+Enforce account lockout thresholds.
 
-> Brute force attacks rely on automation to exploit weak authentication mechanisms. SIEM tools like Splunk enable early detection through log aggregation and pattern recognition, allowing SOC analysts to respond before compromise occurs.
+Continue monitoring the source IP for any later successful authentication.
 
----
+## What This Lab Demonstrates
 
-## Learning Outcome
+Ingesting and validating a log source in Splunk before trusting it.
 
-This investigation demonstrates the ability to:
+Writing SPL that extracts fields and aggregates behaviour rather than matching single strings.
 
-* Ingest and analyze logs in Splunk
-* Detect brute force attacks using SPL queries
-* Identify malicious patterns in authentication logs
-* Perform SOC-style investigation and reporting
-* Map attack behavior to MITRE ATT&CK framework
+Reading authentication logs and separating an attack pattern from normal failure noise.
 
----
+Closing an investigation on evidence, including the negative finding.
 
+Mapping observed behaviour to MITRE ATT&CK.
 
 ## Repository Structure
 
@@ -192,6 +144,5 @@ This investigation demonstrates the ability to:
 
 ---
 
-## Conclusion
-
-This investigation demonstrates how SSH brute force attacks can be effectively detected using Splunk SIEM. By analyzing authentication logs and identifying abnormal login patterns, SOC analysts can detect and respond to credential based attacks before system compromise occurs.
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-WilliamInCyber-blue?style=flat&logo=linkedin)](https://linkedin.com/in/WilliamInCyber)
+[![X](https://img.shields.io/badge/X-WilliamInCyber-black?style=flat&logo=x)](https://x.com/WilliamInCyber)
