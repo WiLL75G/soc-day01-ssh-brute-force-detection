@@ -4,233 +4,246 @@ Detecting SSH brute force activity in Splunk using Linux authentication logs and
 
 ![SSH Brute Force Detection Architecture](./images/00_architecture.png)
 
-Hydra generated repeated SSH authentication attempts from Kali Linux against the Ubuntu server. Authentication logs from the target were then analyzed in Splunk.
+The lab follows the activity from Kali Linux to the Ubuntu SSH server. Authentication logs are then sent to Splunk for detection and investigation.
 
 ## At a Glance
 
-| Field | Detail |
-| --- | --- |
+| Area | Details |
+|---|---|
 | Attack Type | SSH brute force |
 | Detection Platform | Splunk Enterprise |
 | Log Source | `/var/log/auth.log` |
-| Target | Ubuntu Server, SSH enabled |
+| Target | Ubuntu Server with SSH enabled |
 | Attack Source | Kali Linux running Hydra |
-| Outcome | Attack detected, no successful login observed in the attack window |
-| Primary MITRE ATT&CK | T1110.001 — Password Guessing |
+| Outcome | Attack detected. No successful login from the source was observed during the investigated window |
+| MITRE ATT&CK | T1110.001 (Password Guessing) |
 
 ## What This Is
 
-This is a controlled SOC lab that simulates SSH password guessing against an Ubuntu server.
+This project is a controlled SOC lab that demonstrates how repeated SSH authentication failures can be detected and investigated using Splunk.
 
-Hydra generated the authentication attempts. The resulting Linux authentication logs were forwarded into Splunk for detection and investigation.
+The goal was not only to find the failed logins. I also wanted to determine whether the activity was followed by a successful authentication.
 
-The goal was not only to find failed logins. It was to determine what happened after the failures and whether the available evidence showed a successful authentication.
+## Objective
 
-## What Happened
+The investigation focused on three questions.
 
-An automated password guessing attack was run against the SSH service on the Ubuntu server.
+1. Were repeated SSH authentication failures visible in Splunk?
+2. Which source generated the activity?
+3. Did a successful login from the same source follow the failures?
 
-The activity created repeated failed authentication events in `/var/log/auth.log`.
+## Environment
 
-Those logs were forwarded into Splunk, where the events could be searched, grouped by source IP, and investigated.
+The lab used an Ubuntu server with SSH enabled as the target.
 
-The investigation then checked whether successful authentication from the same source followed the failures.
+Kali Linux was used to generate the authentication attempts with Hydra.
 
-## Environment Setup
+Splunk Enterprise was used to search and investigate the Linux authentication events.
 
-![Setup](./images/01_setup.png)
+![Ubuntu SSH Setup](./images/01_setup.png)
 
-The Ubuntu target had SSH enabled and test user accounts available.
-
-Splunk Enterprise was used for analysis, with the Splunk Universal Forwarder shipping the authentication log to the indexer.
-
-This created the basic evidence path:
-
-**SSH activity → authentication log → Splunk**
-
-**Verdict:** The environment provided the telemetry needed to investigate SSH authentication activity.
+**Verdict:** The Ubuntu server was ready to generate SSH authentication telemetry for the investigation.
 
 ## Attack Simulation
 
-![Attack](./images/02_attack.png)
+Hydra was used from Kali Linux to generate repeated SSH authentication attempts against the Ubuntu server.
 
-Hydra was run from Kali Linux against the Ubuntu SSH service.
+This created the failed authentication activity needed for the investigation.
 
-It generated repeated authentication attempts against valid and invalid usernames.
+![SSH Attack Simulation](./images/02_attack.png)
 
-This produced the failed login activity needed for the investigation.
-
-**Verdict:** The controlled simulation generated repeated SSH authentication failures for analysis.
+**Verdict:** Repeated SSH authentication attempts were generated against the Ubuntu server in the controlled lab.
 
 ## Log Ingestion
 
-![Log Ingestion](./images/03_ingestion.png)
+The Ubuntu authentication log was collected for analysis in Splunk.
 
-Before writing detection logic, the authentication data was checked in Splunk.
+The main log source used for the investigation was:
+
+```text
+/var/log/auth.log
+```
+
+I first confirmed that the authentication events were reaching Splunk.
 
 ```spl
 index=main
 ```
 
-Authentication events were visible in the index.
+![Splunk Log Ingestion](./images/03_ingestion.png)
 
-This step matters because a detection query cannot find activity that was never collected.
+This validation mattered because detection logic is only useful when the underlying telemetry is available and searchable.
 
-**Verdict:** The authentication telemetry was available in Splunk before detection work started.
+**Verdict:** Linux authentication events were successfully available in Splunk for analysis.
 
-## Detection Logic
+## Detection
 
-A single failed login is weak evidence by itself.
-
-The stronger signal is repeated authentication failures from the same source.
-
-The investigation therefore looked for:
-
-- multiple failed SSH authentication attempts
-- repeated activity from the same source IP
-- a high volume of failures during the investigated activity
-
-## Detection Query
-
-![Detection](./images/04_detection.png)
+I searched the authentication data for failed SSH password events.
 
 ```spl
 index=main "Failed password"
-| rex "from (?<src_ip>\d+\.\d+\.\d+\.\d+)"
+| rex "from (?<src_ip>\d+\.\d+\.\d+)"
 | stats count as failed_attempts by src_ip
 | where failed_attempts > 3
 | sort - failed_attempts
 ```
 
-The source IP was stored inside the raw SSH event, so it first needed to be extracted.
+### Why This Search Works
 
-`rex` creates the `src_ip` field.
+`"Failed password"` isolates failed SSH authentication events.
 
-`stats` groups the failed authentication events by source IP and counts them.
+`rex` extracts the source IP address from the raw event.
 
-The final filter keeps sources with more than three failures.
+`stats` groups the failed attempts by source.
 
-This turns individual authentication events into a pattern that is easier to investigate.
+The threshold then keeps sources responsible for more than three failed authentication attempts.
 
-**Verdict:** The SPL identified a source responsible for repeated failed SSH authentication attempts.
+![SSH Brute Force Detection](./images/04_detection.png)
 
-## Investigation Findings
+**Verdict:** Splunk identified a source responsible for repeated failed SSH authentication attempts.
 
-![Investigation](./images/05_investigation.png)
+## Investigation
 
-The detection search identified one source IP responsible for a high volume of failed authentication attempts.
+Detection was only the beginning of the investigation.
 
-Finding the failures was only the first step.
+After identifying the repeated failures, I checked the same authentication data for evidence of a successful login from the source.
 
-The same authentication data was then checked for successful logins from that source after the failed attempts.
+This helped answer the more important question.
+
+Did the password guessing lead to successful authentication?
+
+![SSH Investigation](./images/05_investigation.png)
+
+The investigation found repeated failed authentication attempts from the source.
 
 No successful authentication from that source was observed during the investigated attack window.
 
-That negative finding matters because it helps separate an attempted credential attack from evidence of a successful SSH login.
+**Verdict:** SSH password guessing was observed, but the available authentication evidence did not show a successful login from the source during the investigated period.
 
-**Verdict:** SSH password guessing was observed, but the available authentication evidence did not show a successful login from the attacking source during the investigated window.
+## Indicators and Findings
 
-## Indicators Observed
+| Indicator | Finding |
+|---|---|
+| Source IP | `192.168.64.15` |
+| Target Service | SSH |
+| Port | TCP 22 |
+| Authentication Pattern | Repeated failed password attempts |
+| Successful Login | Not observed from the source during the investigated window |
+| Analysis Platform | Splunk Enterprise |
 
-| Indicator | Observation |
-| --- | --- |
-| Authentication failures | High volume of failed SSH authentication events |
-| Source pattern | Repeated attempts from a single source IP |
-| Attempt rate | Rapid authentication attempts during the simulated activity |
-| Accounts | Valid and invalid usernames were targeted |
-| Successful authentication | None observed from the attacking source during the investigated window |
+## MITRE ATT&CK
 
-## MITRE ATT&CK Mapping
+### T1110.001 (Password Guessing)
 
-| Behaviour | Technique ID | Description | Evidence Status |
-| --- | --- | --- | --- |
-| Password guessing | T1110.001 | Password Guessing | Observed |
+The observed behavior maps to Password Guessing because repeated authentication attempts were made against the SSH service.
 
-T1110.001 is the primary mapping because the lab directly generated and observed repeated password guessing against SSH.
-
-The investigation did not establish successful use of a valid account, so techniques requiring successful account use are not presented as confirmed behavior.
+The project does not claim successful use of valid credentials because the investigation did not observe a successful authentication from the attacking source during the investigated period.
 
 ## Analyst Conclusion
 
-The available evidence confirmed SSH password guessing from a single source.
+The evidence supports SSH password guessing against the Ubuntu server.
 
-Repeated authentication failures were visible in the Ubuntu authentication logs and could be grouped by source in Splunk.
+Repeated failed authentication attempts were observed from the source and detected in Splunk.
 
-No successful authentication from that source was observed during the investigated attack window.
+The investigation then checked whether a successful authentication followed.
 
-The evidence therefore supports an attempted credential attack without evidence of a successful SSH login from that source during the investigated period.
+No successful authentication from that source was observed during the investigated window.
+
+This means the evidence supports an attempted credential attack, but it does not establish that the source successfully authenticated to the server.
+
+## Incident Report
+
+After completing the investigation, I documented the findings in a short SOC incident report.
+
+The report records the activity, evidence, investigation findings, impact, and recommended response.
+
+[View the full incident report](./ssh_brute_force_incident_report.pdf)
+
+![SSH Brute Force Incident Report](./images/06_incident_report.png)
+
+**Verdict:** The technical investigation was documented in a report that another analyst or security team could review.
 
 ## Recommended Response
 
-For a similar event in a production environment, the first step would be to validate whether the source is expected and review successful authentication around the same period.
+For similar activity in a real environment, I would:
 
-The targeted accounts should also be checked for suspicious activity.
-
-Depending on the environment and confidence in the finding, response actions could include blocking the source, applying account protections, and creating an alert for repeated SSH authentication failures.
-
-Continued monitoring would help identify whether the same source later produces successful authentication or other suspicious activity.
+1. Validate whether the source IP is expected.
+2. Review successful authentication events around the same period.
+3. Check the targeted accounts for suspicious activity.
+4. Block the source if the activity is confirmed as unauthorized.
+5. Review whether password authentication should remain enabled.
+6. Consider stronger authentication controls.
+7. Create and tune a Splunk alert for repeated SSH authentication failures.
 
 ## The SOC Angle
 
-The useful part of this lab is not simply generating failed SSH logins.
+A SOC analyst should not stop after finding repeated failed logins.
 
-The investigation follows a repeatable SOC workflow:
+The next question is whether the activity had an impact.
 
-**Generate activity → validate telemetry → detect the pattern → investigate the source → check for success → reach an evidence-based conclusion**
+That means checking what happened before the detection, during the activity, and after it.
 
-The same reasoning can be applied to many authentication alerts.
-
-Finding suspicious activity starts the investigation. Checking what happened next helps determine its impact.
+In this investigation, the important follow up was checking whether the same source later authenticated successfully.
 
 ## Lessons Learned
 
-This lab reinforced that detection starts with trustworthy telemetry.
+Detection starts with trustworthy telemetry.
 
-Before building the SPL, the authentication events had to be visible in Splunk and the source IP had to be available for analysis. Without those pieces, repeated failures could not be reliably grouped back to their source.
+Before building the SPL search, the authentication events had to be visible in Splunk and the source IP had to be available for analysis.
 
-It also reinforced the importance of checking what happened after the initial detection. Finding repeated failures confirmed the password guessing activity, but checking for successful authentication helped determine what the available evidence showed about its outcome.
+Finding repeated failures confirms password guessing activity, but checking for successful authentication helps determine the outcome.
 
-The main lesson is simple: **detect the behavior, then investigate its impact.**
+The main lesson was simple.
 
-## What I'd Improve
+Detect the behavior, then investigate its impact.
 
-In the next version, I would make the detection time-aware instead of counting failed logins only by source IP.
+## What I Would Improve
+
+In the next version, I would make the detection aware of timing instead of only counting failed logins by source.
 
 I would group failures into short time windows and test the threshold against normal SSH activity before turning the search into a Splunk alert.
 
-I would also correlate repeated failures with any later successful authentication from the same source. This would help separate an unsuccessful password guessing attempt from activity that may require deeper investigation.
+I would also correlate repeated failures with any later successful authentication from the same source.
 
-These improvements directly extend the same detection and investigation workflow used in this project.
+This would make the detection more useful during a real investigation.
 
 ## What This Demonstrates
 
-This project demonstrates the ability to:
+This project demonstrates my ability to:
 
-- validate authentication telemetry before relying on detection logic
-- investigate Linux SSH authentication events in Splunk
-- extract source IP information from raw events
-- aggregate repeated failures into an investigation signal
-- distinguish observed attack activity from evidence of successful authentication
-- document positive and negative investigation findings
-- map observed password guessing behavior to MITRE ATT&CK
-- identify practical improvements to detection logic based on investigation findings
+* Validate security telemetry before building a detection
+* Investigate Linux authentication activity in Splunk
+* Extract useful fields from raw events
+* Build simple SPL detection logic
+* Identify repeated authentication failures
+* Investigate what happened after a detection
+* Map observed behavior to MITRE ATT&CK
+* Separate observed evidence from assumptions
+* Document investigation findings in an incident report
+* Communicate a defensible analyst conclusion
 
 ## Repository Structure
 
 ```text
+soc-day01-ssh-brute-force-detection/
 ├── README.md
-├── images/
-│   ├── 01_setup.png
-│   ├── 02_attack.png
-│   ├── 03_ingestion.png
-│   ├── 04_detection.png
-│   ├── 05_investigation.png
-│   ├── 06_incident_report.png
-├── logs.txt
-├── splunk_queries.md
+├── ssh_brute_force_incident_report.pdf
+└── images/
+    ├── 00_architecture.png
+    ├── 01_setup.png
+    ├── 02_attack.png
+    ├── 03_ingestion.png
+    ├── 04_detection.png
+    ├── 05_investigation.png
+    └── 06_incident_report.png
 ```
 
----
+## Author
+
+William Gokah
+
+SOC Analyst Portfolio
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-WilliamInCyber-blue?style=flat&logo=linkedin)](https://linkedin.com/in/WilliamInCyber)
+
 [![X](https://img.shields.io/badge/X-WilliamInCyber-black?style=flat&logo=x)](https://x.com/WilliamInCyber)
