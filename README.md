@@ -159,7 +159,7 @@ The report records the activity, evidence, investigation findings, impact, and r
 
 [View the full incident report](./ssh_brute_force_incident_report.pdf)
 
-![SSH Brute Force Incident Report](./images/ssh_brute_force_incident_report.pdf)
+![SSH Brute Force Incident Report](./images/06_incident_report.png)
 
 **Verdict:** The technical investigation was documented in a report that another analyst or security team could review.
 
