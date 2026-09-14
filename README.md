@@ -157,7 +157,7 @@ After completing the investigation, I documented the findings in a short SOC inc
 
 The report records the activity, evidence, investigation findings, impact, and recommended response.
 
-![View the full incident report](./ssh_brute_force_incident_report.pdf)
+[View the full incident report](./ssh_brute_force_incident_report.pdf)
 
 ![SSH Brute Force Incident Report](./images/06_incident_report.png)
 
